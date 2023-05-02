@@ -3,7 +3,7 @@
 #include <optional>
 #include <functional>
 #include <unordered_set>
-#include "graph.hpp"
+#include "node.hpp"
 
 using checkboard = std::vector<std::vector<int>>;
 struct Position {
@@ -42,7 +42,6 @@ private:
     };
 
     std::optional<checkboard> lexicographic_first() {
-        std::unordered_set<Node, Node::HashLexic> unvisited;
         std::unordered_set<Node, Node::HashLexic> visited;
         std::stack<Node> nodes;
         while (nodes.size() < N) {
@@ -88,7 +87,60 @@ private:
     }
 
     std::optional<checkboard> most_compatible_first() {
-        return board;
+        std::unordered_set<Node, Node::HashLexic> unvisited;
+        std::unordered_set<Node, Node::HashLexic> visited;
+        std::stack<Node> nodes;
+        auto count_conflicts = [this](auto node_y){
+            size_t n_conflicts{0};
+            for (auto i = 0; i < N; ++i) {
+                auto p = Position{i, node_y};
+                if(queens_in_column(p.x) || queens_in_row(p.y) ||
+                   queens_in_diagonal(p.x, p.y)){
+                    n_conflicts +=1;
+                }
+            }
+            return n_conflicts;
+        };
+        while (nodes.size() < N) {
+            bool queen_conflict = true;
+
+            for (auto i = 0; i < N; ++i) {
+                auto p = Position{i, static_cast<int>(nodes.size())};
+                std::vector<int> values;
+                if (!nodes.empty()) {
+                    auto parent = nodes.top();
+                    values = parent.values;
+                }
+                values.emplace_back(i);
+                if (visited.find(Node{values}) == visited.end() && !queens_in_column(p.x) && !queens_in_row(p.y) &&
+                    !queens_in_diagonal(p.x, p.y)) {
+                    visited.insert(Node{values});
+                    nodes.push(Node{values});
+                    board[p.y][p.x] = 1;
+                    queen_conflict = false;
+                    break;
+                }
+                visited.insert(Node{values});
+            }
+            if (nodes.empty()) {
+                return {};
+            }
+            if (queen_conflict) {
+                board[nodes.size() - 1][nodes.top().values.back()] = 0;
+                nodes.pop();
+                if (nodes.size() == N - 1) {
+                    break;
+                }
+            }
+            for (const auto &r: board) {
+                for (auto v: r) {
+                }
+            }
+        }
+        if (nodes.size() == N) {
+            return board;
+        }
+        return {};
     }
 
     std::optional<checkboard> least_compatible_first() {
@@ -141,12 +193,12 @@ private:
 
     size_t N{};
     checkboard board;
-    Graph g;
 };
 
 
 int main() {
-    std::vector<int> game_sizes = {4, 7, 8, 10, 11, 13, 15, 16, 18, 19, 21, 22, 23, 25};
+    std::vector<int> game_sizes = {4, 7, 8, 10, 11, 13, 15, 16, 18, 19, 21, 23, 25};
+    //std::vector<int> game_sizes = {4, 7, 8, 10, 11, 13, 15, 16, 18, 19, 21, 22, 23, 25};
     std::vector<Method> methods = {Method::lexicographic_first, Method::most_compatible_first,
                                    Method::least_compatible_first};
     for (const auto size: game_sizes) {
@@ -158,7 +210,7 @@ int main() {
                 auto problem = QueenGame(size);
                 auto board = problem.solve(method);
                 auto stop = std::chrono::high_resolution_clock::now();
-                auto duration = duration_cast<std::chrono::microseconds>(stop - start);
+                auto duration = std::chrono::duration_cast<std::chrono::microseconds>(stop - start);
                 accum += duration.count();
             }
             std::cout << translations[method] << " SOLVING FOR " << size << ". AVG time ms: " << (accum / reps) / 1000 << std::endl;
