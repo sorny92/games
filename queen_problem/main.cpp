@@ -30,45 +30,50 @@ private:
     std::unordered_map<Method, std::function<std::optional<checkboard<N>>(void)>> dispatcher;
 
     std::optional<std::vector<int>> lexicographic_first() {
+        std::unordered_set<Node, Node::HashLexic> unvisited;
+        std::unordered_set<Node, Node::HashLexic> visited;
         std::stack<Node> nodes;
-        std::optional<Node> last_removed_node;
         while (nodes.size() < N) {
-            bool queen_located = true;
+            bool queen_conflict = true;
 
             for (auto i = 0; i < N; ++i) {
                 auto p = Position{i, static_cast<int>(nodes.size())};
-                if (!queens_in_column(p.x) && !queens_in_diagonal(p.x, p.y) && !queens_in_row(p.y)) {
-                    std::vector<int> values;
-                    if (!nodes.empty()) {
-                        auto parent = nodes.top();
-                        values = parent.values;
-                    }
-                    values.emplace_back(i);
+                std::cout << p.x << "," << p.y;
+                std::vector<int> values;
+                if (!nodes.empty()) {
+                    auto parent = nodes.top();
+                    values = parent.values;
+                }
+                values.emplace_back(i);
+                std::cout << "- " << values.size() << std::endl;
+                if (visited.find(Node{values}) == visited.end() && !queens_in_column(p.x) && !queens_in_row(p.y) &&
+                    !queens_in_diagonal(p.x, p.y)) {
+                    visited.insert(Node{values});
                     nodes.push(Node{values});
-                    board[values.size() - 1][values.back()] = true;
-                    queen_located = false;
-                    std::cout << nodes.top().values.back() << std::endl;
+                    board[p.y][p.x] = true;
+                    queen_conflict = false;
+                    std::cout << nodes.top().values.back() << "," << nodes.size()-1 << std::endl;
                     break;
                 }
+                visited.insert(Node{values});
             }
-            if (queen_located) {
-                auto values = nodes.top().values;
-                board[values.size() - 1][values.back()] = false;
-                last_removed_node = nodes.top();
+            if (nodes.empty()) {
+                return {};
+            }
+            if (queen_conflict) {
+                std::cout << "NUKE: " << nodes.top().values.back()  << "," << nodes.size()-1 << std::endl;
+                board[nodes.size() - 1][nodes.top().values.back()] = false;
                 nodes.pop();
-                auto &parent = nodes.top();
-                parent.values.back() += 1;
-                if (parent.values.back() == N) {
+                if (nodes.size() == N - 1) {
                     break;
                 }
             }
             for (const auto &r: board) {
                 for (auto v: r) {
-                    std::cout << (v ? "Q " : "X ");
+                    std::cout << (v ? "Q " : "· ");
                 }
                 std::cout << std::endl;
             }
-            std::cout << std::endl;
             std::cout << std::endl;
         }
         if (nodes.size() == N) {
@@ -78,8 +83,8 @@ private:
     }
 
     bool queens_in_column(size_t column) const {
-        for (auto j = 0; j < N; ++j) {
-            if (board[j][column]) {
+        for (auto i = 0; i < N; ++i) {
+            if (board[i][column]) {
                 return true;
             }
         }
@@ -87,8 +92,8 @@ private:
     }
 
     bool queens_in_row(size_t row) const {
-        for (auto j = 0; j < N; ++j) {
-            if (board[row][j]) {
+        for (auto i = 0; i < N; ++i) {
+            if (board[row][i]) {
                 return true;
             }
         }
@@ -96,8 +101,8 @@ private:
     }
 
     bool queens_in_diagonal(size_t column, size_t row) const {
-        const auto min_idx = std::min(column, row);
         {
+            const auto min_idx = std::min(column, row);
             auto c = column - min_idx, r = row - min_idx;
             while (c < N && r < N) {
                 if (board[r][c]) {
@@ -108,13 +113,14 @@ private:
             }
         }
         {
+            const auto min_idx = std::min(N - column - 1, row);
             auto c = column + min_idx, r = row - min_idx;
-            while (c < N && r < N) {
+            while (c >= 0 && r < N) {
                 if (board[r][c]) {
                     return true;
                 }
-                c++;
-                r--;
+                c--;
+                r++;
             }
         }
         return false;
@@ -126,7 +132,7 @@ private:
 
 
 int main() {
-    auto problem = QueenGame<4>();
+    auto problem = QueenGame<90>();
     std::cout << "Hello, World!" << std::endl;
     auto solution = problem.solve(Method::lexicographic_first);
     if (solution.has_value()) {
