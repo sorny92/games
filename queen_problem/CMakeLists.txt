@@ -1,1 +1,4 @@
-add_executable(queen_problem main.cpp)
+add_executable(queen_problem
+        main.cpp
+        graph.hpp
+        node.hpp)
