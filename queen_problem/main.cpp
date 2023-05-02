@@ -5,8 +5,7 @@
 #include <unordered_set>
 #include "graph.hpp"
 
-template<size_t N>
-using checkboard = std::array<std::array<bool, N>, N>;
+using checkboard = std::vector<std::vector<int>>;
 struct Position {
     int x;
     int y;
@@ -21,19 +20,23 @@ enum class Method {
 template<size_t N>
 class QueenGame {
 public:
+    QueenGame(size_t board_size) : N(board_size) {
+        auto zeros = std::vector(N, 0);
+        board = std::vector(N, zeros);
+    }
 
-    std::optional<checkboard<N>> solve(Method method) {
+    std::optional<checkboard> solve(Method method) {
         return dispatcher.at(method)();
     }
 
 private:
-    std::unordered_map<Method, std::function<std::optional<checkboard<N>>(void)>> dispatcher{
-            {Method::lexicographic_first, [&] { return lexicographic_first(); }},
-            {Method::most_compatible_first, [&] { return most_compatible_first(); }},
+    std::unordered_map<Method, std::function<std::optional<checkboard>(void)>> dispatcher{
+            {Method::lexicographic_first,    [&] { return lexicographic_first(); }},
+            {Method::most_compatible_first,  [&] { return most_compatible_first(); }},
             {Method::least_compatible_first, [&] { return least_compatible_first(); }},
     };
 
-    std::optional<checkboard<N>> lexicographic_first() {
+    std::optional<checkboard> lexicographic_first() {
         std::unordered_set<Node, Node::HashLexic> unvisited;
         std::unordered_set<Node, Node::HashLexic> visited;
         std::stack<Node> nodes;
@@ -52,7 +55,7 @@ private:
                     !queens_in_diagonal(p.x, p.y)) {
                     visited.insert(Node{values});
                     nodes.push(Node{values});
-                    board[p.y][p.x] = true;
+                    board[p.y][p.x] = 1;
                     queen_conflict = false;
                     break;
                 }
@@ -62,7 +65,7 @@ private:
                 return {};
             }
             if (queen_conflict) {
-                board[nodes.size() - 1][nodes.top().values.back()] = false;
+                board[nodes.size() - 1][nodes.top().values.back()] = 0;
                 nodes.pop();
                 if (nodes.size() == N - 1) {
                     break;
@@ -79,11 +82,11 @@ private:
         return {};
     }
 
-    std::optional<checkboard<N>> most_compatible_first() {
+    std::optional<checkboard> most_compatible_first() {
         return board;
     }
 
-    std::optional<checkboard<N>> least_compatible_first() {
+    std::optional<checkboard> least_compatible_first() {
         return board;
     }
 
@@ -131,7 +134,8 @@ private:
         return false;
     }
 
-    checkboard<N> board;
+    size_t N{};
+    checkboard board;
     Graph g;
 };
 
