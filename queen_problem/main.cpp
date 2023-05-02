@@ -17,7 +17,12 @@ enum class Method {
     least_compatible_first
 };
 
-template<size_t N>
+std::unordered_map<Method, std::string> translations{
+        {Method::lexicographic_first,    "lexicographic_first"},
+        {Method::most_compatible_first,  "most_compatible_first"},
+        {Method::least_compatible_first, "least_compatible_first"},
+};
+
 class QueenGame {
 public:
     QueenGame(size_t board_size) : N(board_size) {
@@ -141,15 +146,25 @@ private:
 
 
 int main() {
-    auto problem = QueenGame<25>();
-    auto board = problem.solve(Method::lexicographic_first);
-    if (board.has_value()) {
-        for (const auto &r: *board) {
-            for (auto v: r) {
-                std::cout << (v ? "Q " : "· ");
+    std::vector<int> game_sizes = {4, 7, 8, 10, 11, 13, 15, 16, 18, 19, 21, 22, 23, 25};
+    std::vector<Method> methods = {Method::lexicographic_first, Method::most_compatible_first,
+                                   Method::least_compatible_first};
+    for (const auto size: game_sizes) {
+        const auto reps = 5;
+        for (auto method: methods) {
+            auto accum = 0.0f;
+            for (auto i = 0; i < reps; ++i) {
+                auto start = std::chrono::high_resolution_clock::now();
+                auto problem = QueenGame(size);
+                auto board = problem.solve(method);
+                auto stop = std::chrono::high_resolution_clock::now();
+                auto duration = duration_cast<std::chrono::microseconds>(stop - start);
+                accum += duration.count();
             }
-            std::cout << std::endl;
+            std::cout << translations[method] << " SOLVING FOR " << size << ". AVG time ms: " << (accum / reps) / 1000 << std::endl;
         }
+        std::cout << std::endl;
     }
+
     return 0;
 }
