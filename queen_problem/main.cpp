@@ -23,11 +23,15 @@ class QueenGame {
 public:
 
     std::optional<checkboard<N>> solve(Method method) {
-        return lexicographic_first();
+        return dispatcher.at(method)();
     }
 
 private:
-    std::unordered_map<Method, std::function<std::optional<checkboard<N>>(void)>> dispatcher;
+    std::unordered_map<Method, std::function<std::optional<checkboard<N>>(void)>> dispatcher{
+            {Method::lexicographic_first, [&] { return lexicographic_first(); }},
+            {Method::most_compatible_first, [&] { return most_compatible_first(); }},
+            {Method::least_compatible_first, [&] { return least_compatible_first(); }},
+    };
 
     std::optional<checkboard<N>> lexicographic_first() {
         std::unordered_set<Node, Node::HashLexic> unvisited;
@@ -38,21 +42,18 @@ private:
 
             for (auto i = 0; i < N; ++i) {
                 auto p = Position{i, static_cast<int>(nodes.size())};
-                std::cout << p.x << "," << p.y;
                 std::vector<int> values;
                 if (!nodes.empty()) {
                     auto parent = nodes.top();
                     values = parent.values;
                 }
                 values.emplace_back(i);
-                std::cout << "- " << values.size() << std::endl;
                 if (visited.find(Node{values}) == visited.end() && !queens_in_column(p.x) && !queens_in_row(p.y) &&
                     !queens_in_diagonal(p.x, p.y)) {
                     visited.insert(Node{values});
                     nodes.push(Node{values});
                     board[p.y][p.x] = true;
                     queen_conflict = false;
-                    std::cout << nodes.top().values.back() << "," << nodes.size()-1 << std::endl;
                     break;
                 }
                 visited.insert(Node{values});
@@ -61,7 +62,6 @@ private:
                 return {};
             }
             if (queen_conflict) {
-                std::cout << "NUKE: " << nodes.top().values.back()  << "," << nodes.size()-1 << std::endl;
                 board[nodes.size() - 1][nodes.top().values.back()] = false;
                 nodes.pop();
                 if (nodes.size() == N - 1) {
@@ -70,16 +70,21 @@ private:
             }
             for (const auto &r: board) {
                 for (auto v: r) {
-                    std::cout << (v ? "Q " : "· ");
                 }
-                std::cout << std::endl;
             }
-            std::cout << std::endl;
         }
         if (nodes.size() == N) {
             return board;
         }
         return {};
+    }
+
+    std::optional<checkboard<N>> most_compatible_first() {
+        return board;
+    }
+
+    std::optional<checkboard<N>> least_compatible_first() {
+        return board;
     }
 
     bool queens_in_column(size_t column) const {
@@ -115,7 +120,7 @@ private:
         {
             const auto min_idx = std::min(N - column - 1, row);
             auto c = column + min_idx, r = row - min_idx;
-            while (c >= 0 && r < N) {
+            while (c < N && r < N) {
                 if (board[r][c]) {
                     return true;
                 }
@@ -132,8 +137,7 @@ private:
 
 
 int main() {
-    auto problem = QueenGame<9>();
-    std::cout << "Hello, World!" << std::endl;
+    auto problem = QueenGame<25>();
     auto board = problem.solve(Method::lexicographic_first);
     if (board.has_value()) {
         for (const auto &r: *board) {
