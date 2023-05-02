@@ -22,14 +22,14 @@ template<size_t N>
 class QueenGame {
 public:
 
-    std::optional<std::vector<int>> solve(Method method) {
+    std::optional<checkboard<N>> solve(Method method) {
         return lexicographic_first();
     }
 
 private:
     std::unordered_map<Method, std::function<std::optional<checkboard<N>>(void)>> dispatcher;
 
-    std::optional<std::vector<int>> lexicographic_first() {
+    std::optional<checkboard<N>> lexicographic_first() {
         std::unordered_set<Node, Node::HashLexic> unvisited;
         std::unordered_set<Node, Node::HashLexic> visited;
         std::stack<Node> nodes;
@@ -77,7 +77,7 @@ private:
             std::cout << std::endl;
         }
         if (nodes.size() == N) {
-            return nodes.top().values;
+            return board;
         }
         return {};
     }
@@ -132,11 +132,16 @@ private:
 
 
 int main() {
-    auto problem = QueenGame<90>();
+    auto problem = QueenGame<9>();
     std::cout << "Hello, World!" << std::endl;
-    auto solution = problem.solve(Method::lexicographic_first);
-    if (solution.has_value()) {
-
+    auto board = problem.solve(Method::lexicographic_first);
+    if (board.has_value()) {
+        for (const auto &r: *board) {
+            for (auto v: r) {
+                std::cout << (v ? "Q " : "· ");
+            }
+            std::cout << std::endl;
+        }
     }
     return 0;
 }
