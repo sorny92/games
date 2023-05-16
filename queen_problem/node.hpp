@@ -3,7 +3,7 @@
 #include <bits/stdc++.h>
 
 struct Node {
-    std::vector<int> values;
+    std::vector<std::pair<int,int>> values;
 
     bool operator==(const Node &e2) const {
         return (this->values == e2.values);
@@ -16,7 +16,7 @@ struct Node {
         size_t operator()(const Node &e) const {
             size_t accum{0};
             for (const auto v: e.values) {
-                accum += v;
+                accum += v.second;
                 accum *= 10;
             }
             return accum;
