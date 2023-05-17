@@ -52,7 +52,7 @@ private:
         while (nodes.size() < N) {
             auto idx = nodes.size();
 
-            bool queen_conflict = add_node(visited, nodes, idx);
+            bool queen_conflict = add_node(idx);
             if (nodes.empty()) {
                 return {};
             }
@@ -72,13 +72,13 @@ private:
 
     std::optional<checkboard> most_compatible_first() {
         while (nodes.size() < N) {
-            auto conflicts = get_row_conflicts(nodes);
+            auto conflicts = get_row_conflicts();
             auto it = std::min_element(conflicts.begin(), conflicts.end());
             for (auto c: conflicts) {
             }
 
             auto idx = it->first;
-            bool queen_conflict = add_node(visited, nodes, idx);
+            bool queen_conflict = add_node(idx);
             if (nodes.empty()) {
                 return {};
             }
@@ -98,7 +98,7 @@ private:
 
     std::optional<checkboard> least_compatible_first() {
         while (nodes.size() < N) {
-            auto conflicts = get_row_conflicts(nodes);
+            auto conflicts = get_row_conflicts();
             auto it = std::max_element(conflicts.begin(), conflicts.end());
 
             for (auto c: conflicts) {
@@ -106,7 +106,7 @@ private:
 
             auto idx = it->first;
 
-            bool queen_conflict = add_node(visited, nodes, idx);
+            bool queen_conflict = add_node(idx);
             if (nodes.empty()) {
                 return {};
             }
@@ -124,37 +124,38 @@ private:
         return {};
     }
 
-    std::unordered_map<int, int> get_row_conflicts(std::stack<Node> &nodes) const {
+    std::unordered_map<int, int> get_row_conflicts() const {
         std::unordered_map<int, int> conflicts;
+        if (nodes.empty()) {
+            conflicts[0] = 0;
+            return conflicts;
+        }
+        auto values = nodes.top().values;
         for (auto j = 0; j < N; ++j) {
-            conflicts.try_emplace(j, 0);
-            if (nodes.empty()) {
-                break;
-            }
-            auto values = nodes.top().values;
             auto in_nodes = false;
             for (const auto &v: values) {
                 if (v.first == j) {
-                    conflicts.erase(j);
                     in_nodes = true;
                     break;
                 }
             }
-            if (in_nodes) {
-                continue;
+            if (!in_nodes) {
+                conflicts.emplace(j, 0);
             }
+        }
+        for (auto &c: conflicts) {
             for (auto i = 0; i < N; ++i) {
-                auto p = Position{i, j};
+                auto p = Position{i, c.first};
                 if (queens_in_column(p.x) || queens_in_row(p.y) ||
                     queens_in_diagonal(p.x, p.y)) {
-                    conflicts[j] += 1;
+                    conflicts[c.first] += 1;
                 }
             }
         }
         return conflicts;
     }
 
-    bool add_node(std::unordered_set<Node, Node::HashLexic> &visited, std::stack<Node> &nodes, unsigned long idx) {
+    bool add_node(unsigned long idx) {
         bool queen_conflict;
         for (auto i = 0; i < N; ++i) {
             auto p = Position{i, static_cast<int>(idx)};
